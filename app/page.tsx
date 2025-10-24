@@ -9,6 +9,7 @@ interface CartItem {
   id: number;
   product: string;
   price: number;
+  unitPrice: number;
   quantity: number;
   subtotal: number;
 }
@@ -18,6 +19,7 @@ export default function Home() {
   const [buyerName, setBuyerName] = useState('');
   const [product, setProduct] = useState('');
   const [price, setPrice] = useState('');
+  const [unitPrice, setUnitPrice] = useState(''); // <-- nuevo
   const [quantity, setQuantity] = useState('1');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [alert, setAlert] = useState<{ title: string; message: string; type: 'error' | 'success' } | null>(null);
@@ -50,6 +52,7 @@ export default function Home() {
       id: Date.now(),
       product,
       price: Number(price),
+      unitPrice: Number(unitPrice),
       quantity: Number(quantity),
       subtotal: Number(price) * Number(quantity)
     };
@@ -94,30 +97,43 @@ export default function Home() {
     doc.text(buyerName, 50, 45);
 
     // Tabla
-    let y = 60;
-    doc.setFontSize(10);
-    doc.text("Producto", 20, y);
-    doc.text("Precio", 110, y);
-    doc.text("Cant.", 140, y);
-    doc.text("Subtotal", 165, y);
-    doc.line(20, y + 2, 190, y + 2);
-    y += 10;
+let y = 60;
+doc.setFontSize(10);
 
-    cart.forEach(item => {
-      doc.text(item.product.substring(0, 25), 20, y); // corta si es muy largo
-      doc.text(`$${item.price.toFixed(2)}`, 110, y);
-      doc.text(item.quantity.toString(), 140, y);
-      doc.text(`$${item.subtotal.toFixed(2)}`, 165, y);
-      y += 8;
-    });
+// Encabezados
+const colX = {
+  producto: 20,
+  precio: 110,
+  unitPrice: 135,
+  cantidad: 155,
+  subtotal: 175
+};
 
-    // Total
-    y += 5;
-    doc.line(20, y, 190, y);
-    y += 10;
-    doc.setFontSize(14);
-    doc.text("TOTAL:", 140, y);
-    doc.text(`$${total}`, 165, y);
+doc.text("Producto", colX.producto, y); // texto a la izquierda
+doc.text("Precio Atado", colX.precio, y, { align: "right" }); // alineado a la derecha
+doc.text("Precio c/u", colX.unitPrice, y, { align: "right" });
+doc.text("Cant.", colX.cantidad, y, { align: "right" });
+doc.text("Subtotal", colX.subtotal, y, { align: "right" });
+doc.line(20, y + 2, 190, y + 2);
+y += 10;
+
+// Datos del carrito
+cart.forEach(item => {
+  doc.text(item.product.substring(0, 25), colX.producto, y);
+  doc.text(`$${item.price.toFixed(2)}`, colX.precio, y, { align: "right" });
+  doc.text(`$${item.unitPrice.toFixed(2)}`, colX.unitPrice, y, { align: "right" });
+  doc.text(item.quantity.toString(), colX.cantidad, y, { align: "right" });
+  doc.text(`$${item.subtotal.toFixed(2)}`, colX.subtotal, y, { align: "right" });
+  y += 8;
+});
+
+// Total
+y += 5;
+doc.line(20, y, 190, y);
+y += 10;
+doc.setFontSize(14);
+doc.text("TOTAL:", 140, y, { align: "right" }); // TOTAL alineado a la derecha
+doc.text(`$${total}`, 175, y, { align: "right" }); // monto total alineado a la derecha
     // Marca de agua centrada y diagonal
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -198,14 +214,18 @@ export default function Home() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Precio Por Atado ($)</label>
               <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
+              type="number"
+              value={price}
+              onChange={(e) => {
+                const valor = Number(e.target.value);
+                setPrice(e.target.value);
+                setUnitPrice(valor > 0 ? (valor / 10).toFixed(2) : '');
+              }}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+            />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad</label>
@@ -245,6 +265,7 @@ export default function Home() {
                     <tr className="text-left text-sm font-semibold text-black-600 uppercase border-b">
                       <th className="pb-3">Producto</th>
                       <th className="pb-3">Precio</th>
+                      <th className="pb-3">Precio Unitario</th>
                       <th className="pb-3">Cant.</th>
                       <th className="pb-3">Subtotal</th>
                       <th></th>
@@ -255,6 +276,7 @@ export default function Home() {
                       <tr key={item.id} className="border-t">
                         <td className="py-3 font-medium">{item.product}</td>
                         <td className="py-3">${item.price.toFixed(2)}</td>
+                        <td className="py-3">${item.unitPrice.toFixed(2)} c/u</td>
                         <td className="py-3">{item.quantity}</td>
                         <td className="py-3">${item.subtotal.toFixed(2)}</td>
                         <td className="py-3">
